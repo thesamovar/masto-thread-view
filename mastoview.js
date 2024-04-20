@@ -31,15 +31,41 @@ function test_mastoview(url) {
                     parent.children.push(post);
                 }
             }
+            // get the number of recursive replies and engagements
+            let count_replies_engagements = function(post) {
+                if(post.recursive_replies!==undefined) {
+                    return [post.recursive_replies, post.recursive_engagements];
+                }
+                post.engagements = post.reblogs_count + post.favourites_count;
+                post.recursive_engagements = post.engagements;
+                post.recursive_replies = 0;
+                if(post.children) {
+                    post.recursive_replies += post.children.length;
+                    for(let i = 0; i < post.children.length; i++) {
+                        [child_replies, child_engagements] = count_replies_engagements(post.children[i]);
+                        post.recursive_replies += child_replies;
+                        post.recursive_engagements += child_engagements;
+                    }
+                }
+                return [post.recursive_replies, post.recursive_engagements];
+            }
+            count_replies_engagements(basepost);
+            // render the thread
             const basediv = document.createElement('div');
             basediv.classList.add('mastoview-thread');
             let add_post_and_children = function(post, indent) {
                 const div = document.createElement('div');
                 div.classList.add('mastoview-post');
                 div.style.marginLeft = indent*4 + 'em';
-                div.innerHTML = post.content;
+                // make this display better
+                summary_start = `<p>${post.account.display_name} @${post.account.acct}</p>`;
+                summary_start += `<p>${post.reblogs_count} reposts, ${post.favourites_count} favourites.</p>`;
+                summary_start += `<p>Reply thread has ${post.recursive_replies} replies, ${post.recursive_engagements} engagements</p>`;
+                div.innerHTML = summary_start+post.content;
                 basediv.appendChild(div);
                 if(post.children) {
+                    // sort by engagement, make this optional later
+                    post.children.sort((a, b) => a.recursive_replies+a.recursive_engagements < b.recursive_replies+b.recursive_engagements ? 1 : -1);
                     for(let i = 0; i < post.children.length; i++) {
                         add_post_and_children(post.children[i], indent + 1);
                     }
