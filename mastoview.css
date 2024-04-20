@@ -1,0 +1,9 @@
+.mastoview-post {
+    width: 400px;
+    max-height: 200px;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    overflow: scroll;
+    background-color: #f4f4ff;
+}
