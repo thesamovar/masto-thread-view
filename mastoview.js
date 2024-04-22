@@ -58,10 +58,13 @@ function test_mastoview(url) {
                 div.classList.add('mastoview-post');
                 div.style.marginLeft = indent*4 + 'em';
                 // make this display better
-                summary_start = `<p>${post.account.display_name} @${post.account.acct}</p>`;
-                summary_start += `<p>${post.reblogs_count} reposts, ${post.favourites_count} favourites.</p>`;
-                summary_start += `<p>Reply thread has ${post.recursive_replies} replies, ${post.recursive_engagements} engagements</p>`;
-                div.innerHTML = summary_start+post.content;
+                header_html = `<div class="mastoview-post-header"><a href="${post.account.url}"><span class="mastoview-post-author-name">${post.account.display_name}</span> <span class="mastoview-post-author-id">@${post.account.acct}</span></a></div>`;
+                footer_text = `🔁 ${post.reblogs_count} ⭐ ${post.favourites_count}`;
+                posted_at = new Date(post.created_at);
+                footer_text += ` | thread ↩️ ${post.recursive_replies} 🔁⭐ ${post.recursive_engagements}`;
+                footer_text += ` | <a class="mastoview-post-date" href="${post.url}">${posted_at.toLocaleString()}</a>`;
+                footer_html = `<div class="mastoview-post-footer">${footer_text}</div>`;
+                div.innerHTML = header_html+`<div class="mastoview-post-content">${post.content}</div>`+footer_html;
                 basediv.appendChild(div);
                 if(post.children) {
                     // sort by engagement, make this optional later

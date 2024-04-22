@@ -1,9 +1,45 @@
+body {
+    background-color: #222222;
+}
+
 .mastoview-post {
     width: 400px;
-    max-height: 200px;
     border: 1px solid black;
     border-radius: 5px;
     padding: 5px;
+    margin: 2px;
+    background-color: lightgrey;
+}
+
+.mastoview-post-content {
+    max-height: 200px;
     overflow: scroll;
-    background-color: #f4f4ff;
+}
+
+.mastoview-post-header {
+    font-size: small;
+}
+
+.mastoview-post-footer {
+    font-size: small;
+}
+
+.mastoview-post-header a {
+    text-decoration: none;
+}
+
+.mastoview-post-date {
+    color: #555555;
+    text-decoration: none;
+}
+
+.mastoview-post-author-name {
+    color: black;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.mastoview-post-author-id {
+    color: #555555;
+    text-decoration: none;
 }
