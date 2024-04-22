@@ -9,9 +9,16 @@
 </head>
 <body>
 
-<script>
-    test_mastoview('https://neuromatch.social/@neuralreckoning/112225106987973156');
-</script>
+    <div>
+        <input type="text" id="mastodon_url" value="https://neuromatch.social/@neuralreckoning/112225106987973156" style="width: 100%"><br/>
+        <button onclick="mastoview_linear(document.getElementById('mastodon_url').value)">Linear thread view</button>
+    </div>
+
+    <div id="mastoview-thread"></div>
+
+    <script>
+        mastoview_linear('https://neuromatch.social/@neuralreckoning/112225106987973156');
+    </script>
 
 </body>
 </html>

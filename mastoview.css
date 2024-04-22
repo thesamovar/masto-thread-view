@@ -2,6 +2,10 @@ body {
     background-color: #222222;
 }
 
+.loading_thread {
+    color: white;
+}
+
 .mastoview-post {
     width: 400px;
     border: 1px solid black;
@@ -11,17 +15,39 @@ body {
     background-color: lightgrey;
 }
 
+.hidden {
+    display: none;
+}
+
+.mastoview-replies-expand {
+    width: 400px;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 2px;
+    background-color: lightblue;
+    font-size: small;
+}
+
 .mastoview-post-content {
     max-height: 200px;
     overflow: scroll;
 }
 
+.mastoview-post-content p {
+    margin-top: 0px;
+}
+
 .mastoview-post-header {
     font-size: small;
+    border-bottom: 1px solid darkgrey;
+    padding-bottom: 2px;
 }
 
 .mastoview-post-footer {
     font-size: small;
+    border-top: 1px solid darkgrey;
+    padding-top: 2px;
 }
 
 .mastoview-post-header a {
