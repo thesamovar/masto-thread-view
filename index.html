@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastodon thread viewer</title>
+    <script src="mastoview.js"></script>
+    <link rel="stylesheet" href="mastoview.css">
+</head>
+<body>
+
+    <div>
+        <input type="text" id="mastodon_url" placeholder="Paste Mastodon thread URL here and press button below" style="width: 100%"><br/>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_linear)">Linear threaded view</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table_vertical)">Table view (vertical)</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table_horizontal)">Table view (horizontal)</button>
+    </div>
+
+    <div id="mastoview-thread">
+        <div style="background-color: lightgrey; border: 5px; border: 1px solid black; padding: 10px;">
+            <p>
+                This is a Mastodon thread viewer. Paste a Mastodon thread URL in the input box above and press one of the buttons to view the thread in different formats.
+            </p>
+            <p>
+                Alternatively, you can create a "bookmarklet". Right click on one of the view types below and choose "Bookmark this link" or "Add to bookmarks".
+                Then, when you're on a Mastodon thread page, click the bookmark to view the thread in the chosen format.
+            </p>
+            <ul>
+                <li><a href="javascript:(() => {const url = encodeURIComponent(window.location.href); window.open(`https://thesamovar.github.io/masto-thread-view/index.html?url=${url}&view=linear`, '_blank');})()">Masto thread view</a> (linear)</li>
+                <li><a href="javascript:(() => {const url = encodeURIComponent(window.location.href); window.open(`https://thesamovar.github.io/masto-thread-view/index.html?url=${url}&view=table-vertical`, '_blank');})()">Masto thread view</a> (vertical table)</li>
+                <li><a href="javascript:(() => {const url = encodeURIComponent(window.location.href); window.open(`https://thesamovar.github.io/masto-thread-view/index.html?url=${url}&view=table-horizontal`, '_blank');})()">Masto thread view</a> (horizontal table)</li>
+            </ul>
+            <p>
+                For coders, you can use the URL parameters <code>url</code> and <code>view</code> to load a thread directly.
+                For example:<br/>
+                <a href="https://thesamovar.github.io/masto-thread-view/index.html?url=https%3A%2F%2Fneuromatch.social%2F%40neuralreckoning%2F112225106987973156&view=table-vertical"><code>https://thesamovar.github.io/masto-thread-view/index.html?url=https%3A%2F%2Fneuromatch.social%2F%40neuralreckoning%2F112225106987973156&view=table-vertical</code></a><br/>
+                will load the thread at:<br/>
+                <a href="https://neuromatch.social/@neuralreckoning/112225106987973156"><code>https://neuromatch.social/@neuralreckoning/112225106987973156</code></a><br/>
+                in vertical table view.
+            </p>
+            <p>
+                Options for the <code>view</code> parameter are:
+                <ul>
+                    <li><code>linear</code></li>
+                    <li><code>table-vertical</code></li>
+                    <li><code>table-horizontal</code></li>
+                </ul>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        mastoview_read_url_params();
+    </script>
+
+</body>
+</html>

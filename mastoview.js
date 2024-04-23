@@ -286,7 +286,7 @@ function render_masto_thread_table_horizontal(basepost, the_thread) {
 
 function get_api_url_from_masto_url(url) {
     const url_parts = url.split('/');
-    return url_parts[0]+'//'+url_parts[2]+'/api/v1/statuses/'+url_parts[4];
+    return url_parts[0]+'//'+url_parts[2]+'/api/v1/statuses/'+url_parts[url_parts.length-1];
 }
 
 function mastoview_load_and_render(url, render_func) {
@@ -300,4 +300,20 @@ function mastoview_load_and_render(url, render_func) {
             container.innerHTML = '';
             container.appendChild(div);        
         });
+}
+
+function mastoview_read_url_params() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const url = urlParams.get('url');
+    let view = urlParams.get('view');
+    if(view===null) {
+        view = 'linear';
+    }
+    view = {'linear': render_masto_thread_linear,
+            'table-vertical': render_masto_thread_table_vertical,
+            'table-horizontal': render_masto_thread_table_horizontal}[view];
+    if(url) {
+        document.querySelector('#mastodon_url').value = url;
+        mastoview_load_and_render(url, view);
+    }
 }
