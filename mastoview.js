@@ -1,3 +1,5 @@
+////////////////////////// MASTODON THREAD LOADING AND ANALYSIS ////////////
+
 async function get_masto_thread(url) {
     let posts = {};
     // get the main post
@@ -50,7 +52,18 @@ function analyse_masto_thread(the_thread) {
     return basepost;
 }
 
-function render_post(post) {
+function sort_hierarchy_by_engagement(post) {
+    if(post.children) {
+        post.children.sort((a, b) => a.recursive_replies+a.recursive_engagements < b.recursive_replies+b.recursive_engagements ? 1 : -1);
+        for(let i = 0; i < post.children.length; i++) {
+            sort_hierarchy_by_engagement(post.children[i]);
+        }
+    }
+}
+
+////////////////////////// POST RENDERING ///////////////////////////////////
+
+function render_post(post, fixed_height=false) {
     // todo: remove all the @username from the beginning and end of each masto post, just to make it look nicer. Not entirely trivial to do this.
     const div = document.createElement('div');
     div.classList.add('mastoview-post');
@@ -60,11 +73,18 @@ function render_post(post) {
     footer_text += ` | thread ↩️ ${post.recursive_replies} 🔁⭐ ${post.recursive_engagements}`;
     footer_text += ` | <a class="mastoview-post-date" href="${post.url}">${posted_at.toLocaleString()}</a>`;
     footer_html = `<div class="mastoview-post-footer">${footer_text}</div>`;
-    div.innerHTML = header_html+`<div class="mastoview-post-content">${post.content}</div>`+footer_html;
+    if(fixed_height) {
+        div.innerHTML = header_html+`<div class="mastoview-post-content-fixed-height">${post.content}</div>`+footer_html;
+    } else {
+        div.innerHTML = header_html+`<div class="mastoview-post-content">${post.content}</div>`+footer_html;
+    }
     return div;
 }
 
-function render_masto_thread_linear(basepost) {
+////////////////////////// LINEAR VIEW AND HELPERS //////////////////////////
+
+function render_masto_thread_linear(basepost, the_thread) {
+    sort_hierarchy_by_engagement(basepost);
     // render the thread
     let add_post_and_children = function(post, indent) {
         const post_div = render_post(post);
@@ -86,7 +106,6 @@ function render_masto_thread_linear(basepost) {
             };
             div_post_and_replies.appendChild(replies_expand);
             // sort by engagement, make this optional later
-            post.children.sort((a, b) => a.recursive_replies+a.recursive_engagements < b.recursive_replies+b.recursive_engagements ? 1 : -1);
             for(let i = 0; i < post.children.length; i++) {
                 child_div = add_post_and_children(post.children[i], indent + 1);
                 replies_div.appendChild(child_div);
@@ -116,19 +135,89 @@ function expand_all_masto_thread() {
     }
 }
 
+////////////////////////// TABLE VIEW //////////////////////////////////////
+
+function render_masto_thread_table(basepost, the_thread) {
+    sort_hierarchy_by_engagement(basepost);
+    // compute grid placement of posts
+    grid = {};
+    connections = []
+    let compute_grid_placement = function(post, row, col) {
+        grid[[row, col]] = post;
+        let width=1, height=0;
+        if(post.children) {
+            let cur_row = row;
+            let cur_col = col+1;
+            for(let i = 0; i < post.children.length; i++) {
+                [child_width, child_height] = compute_grid_placement(post.children[i], cur_row, cur_col);
+                width = Math.max(width, 1+child_width);
+                height += child_height;
+                if(i!=post.children.length-1) {
+                    post.children[i].has_next_sibling = true;
+                    for(let j=cur_row+1; j<cur_row+child_height; j++) {
+                        grid[[j, cur_col]] = '|'
+                    }
+                }
+                cur_row += child_height;
+            }
+        }
+        if(height==0) {
+            height = 1;
+        }
+        return [width, height];
+    }
+    const [width, height] = compute_grid_placement(basepost, 0, 0);
+    // render the thread
+    const table = document.createElement('table');
+    table.classList.add('mastoview-table');
+    for(let i = 0; i < height; i++) {
+        const row = table.insertRow();
+        for(let j = 0; j < width; j++) {
+            const cell = row.insertCell();
+            if(grid[[i, j]]) {
+                if(grid[[i, j]]=='|') {
+                    cell.classList.add('mastoview-table-vertical-line');
+                } else {
+                    const postdiv = render_post(grid[[i, j]], true)
+                    cell.appendChild(postdiv);
+                    if(grid[[i, j+1]] && grid[[i, j+1]]!='|') {
+                        const icon = document.createElement('div');
+                        icon.classList.add('connect-right');
+                        cell.appendChild(icon);
+                    }
+                    if(grid[[i, j]].has_next_sibling) {
+                        const icon = document.createElement('div');
+                        if(grid[[i+1, j]]=='|') {
+                            icon.classList.add('connect-down-thin');
+                        } else {
+                            icon.classList.add('connect-down-fat');
+                        }
+                        cell.appendChild(icon);
+                    }
+                }
+            } else {
+                cell.innerHTML = '<div class="vline">&nbsp;</div>';
+            }
+        }
+    }
+    return table;
+}
+
+////////////////////////// COMMON TO ALL METHODS //////////////////////////
+
 function get_api_url_from_masto_url(url) {
     const url_parts = url.split('/');
     return url_parts[0]+'//'+url_parts[2]+'/api/v1/statuses/'+url_parts[4];
 }
 
-function mastoview_linear(url) {
+function mastoview_load_and_render(url, render_func) {
     const api_url = get_api_url_from_masto_url(url);
     const container = document.querySelector('#mastoview-thread');
     container.innerHTML = '<div class="loading_thread">Loading thread, please wait...</a>'
     get_masto_thread(api_url)
         .then(the_thread => {
             const basepost = analyse_masto_thread(the_thread);
-            const div = render_masto_thread_linear(basepost);
+            const div = render_func(basepost, the_thread);
             container.innerHTML = '';
             container.appendChild(div);        
         });

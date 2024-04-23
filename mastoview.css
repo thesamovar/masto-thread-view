@@ -34,6 +34,11 @@ body {
     overflow: scroll;
 }
 
+.mastoview-post-content-fixed-height {
+    height: 200px;
+    overflow: scroll;
+}
+
 .mastoview-post-content p {
     margin-top: 0px;
 }
@@ -68,4 +73,56 @@ body {
 .mastoview-post-author-id {
     color: #555555;
     text-decoration: none;
+}
+
+.mastoview-table-vertical-line {
+    width: 400px;
+    height: 200px;
+    background-image: linear-gradient(yellow, yellow);
+    background-size: 2px 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+table {
+    padding: 0px;
+    border-spacing: 0px;
+}
+table td {
+    /* border: 1px solid red; */
+    position: relative;
+}
+
+.connect-right {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    width: 8px;
+    height: 4px;
+    background-color: yellow;
+    z-index: -1;
+}
+
+.connect-down-fat {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    height: 8px;
+    width: 4px;
+    background-color: yellow;
+    z-index: -1;
+}
+
+.connect-down-thin {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    height: 8px;
+    width: 0px;
+    border: 1px solid yellow;
+    margin-left: -1px;
+    z-index: -1;
 }

@@ -11,13 +11,14 @@
 
     <div>
         <input type="text" id="mastodon_url" value="https://neuromatch.social/@neuralreckoning/112225106987973156" style="width: 100%"><br/>
-        <button onclick="mastoview_linear(document.getElementById('mastodon_url').value)">Linear thread view</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_linear)">Linear threaded view</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table)">Table view</button>
     </div>
 
     <div id="mastoview-thread"></div>
 
     <script>
-        mastoview_linear('https://neuromatch.social/@neuralreckoning/112225106987973156');
+        mastoview_load_and_render('https://neuromatch.social/@neuralreckoning/112225106987973156', render_masto_thread_linear);
     </script>
 
 </body>
