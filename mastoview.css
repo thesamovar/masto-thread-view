@@ -123,3 +123,14 @@ table td {
     background-color: yellow;
     z-index: -1;
 }
+
+.mastoview-post-media {
+    max-width: 100%;
+}
+
+.mastoview-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 5px;
+}

@@ -91,16 +91,26 @@ function render_post(post, fixed_height=false, colour_by_engagement=true) {
         const sat = Math.round(80*c);
         div.style.backgroundColor = `hsl(50, ${sat}%, 50%)`;
     }
-    header_html = `<div class="mastoview-post-header"><a href="${post.account.url}"><span class="mastoview-post-author-name">${post.account.display_name}</span> <span class="mastoview-post-author-id">@${post.account.acct}</span></a></div>`;
+    header_html = `<div class="mastoview-post-header"><img src="${post.account.avatar}" class="mastoview-avatar"><a href="${post.account.url}"><span class="mastoview-post-author-name">${post.account.display_name}</span> <span class="mastoview-post-author-id">@${post.account.acct}</span></a></div>`;
     footer_text = `🔁 ${post.reblogs_count} ⭐ ${post.favourites_count}`;
     posted_at = new Date(post.created_at);
     footer_text += ` | thread ↩️ ${post.recursive_replies} 🔁⭐ ${post.recursive_engagements}`;
     footer_text += ` | <a class="mastoview-post-date" href="${post.url}">${posted_at.toLocaleString()}</a>`;
     footer_html = `<div class="mastoview-post-footer">${footer_text}</div>`;
+    let post_content = post.content;
+    if(post.media_attachments) {
+        for(let i = 0; i < post.media_attachments.length; i++) {
+            console.log(post.media_attachments[i].remote_url);
+            post_content += `<img src="${post.media_attachments[i].remote_url}" class="mastoview-post-media">`;
+        }
+    }
+    if(post.card) {
+        post_content += `<div class="mastoview-post-card">${post.card.html}</div>`;
+    }
     if(fixed_height) {
-        div.innerHTML = header_html+`<div class="mastoview-post-content-fixed-height">${post.content}</div>`+footer_html;
+        div.innerHTML = header_html+`<div class="mastoview-post-content-fixed-height">${post_content}</div>`+footer_html;
     } else {
-        div.innerHTML = header_html+`<div class="mastoview-post-content">${post.content}</div>`+footer_html;
+        div.innerHTML = header_html+`<div class="mastoview-post-content">${post_content}</div>`+footer_html;
     }
     return div;
 }
@@ -140,7 +150,7 @@ function render_masto_thread_linear(basepost, the_thread) {
     }
     const container_div = document.createElement('div');
     document.createElement('button');
-    container_div.innerHTML = '<button id="mastoview-expand-all" onclick="expand_all_masto_thread()">Expand all</button> <button id="mastoview-collapse-all" onclick="collapse_all_masto_thread()">Collapse all</button>';
+    container_div.innerHTML = '<button id="mastoview-expand-all" onclick="expand_all_masto_thread()">Expand all</button> <button id="mastoview-collapse-all" onclick="collapse_all_masto_thread()">Collapse all</button> <button onclick="mastoview_remove_max_height()">Remove max height restriction</button>';
     container_div.appendChild(add_post_and_children(basepost, 0));
     return container_div;
 }
@@ -156,6 +166,13 @@ function expand_all_masto_thread() {
     const replies = document.querySelectorAll('.mastoview-replies');
     for(let i = 0; i < replies.length; i++) {
         replies[i].classList.remove('hidden');
+    }
+}
+
+function mastoview_remove_max_height() {
+    const posts = document.querySelectorAll('.mastoview-post-content');
+    for(let i = 0; i < posts.length; i++) {
+        posts[i].style.maxHeight = 'none';
     }
 }
 
