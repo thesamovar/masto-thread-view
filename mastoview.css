@@ -45,13 +45,13 @@ body {
 
 .mastoview-post-header {
     font-size: small;
-    border-bottom: 1px solid darkgrey;
+    border-bottom: 1px solid #00000088;
     padding-bottom: 2px;
 }
 
 .mastoview-post-footer {
     font-size: small;
-    border-top: 1px solid darkgrey;
+    border-top: 1px solid #00000088;
     padding-top: 2px;
 }
 
@@ -84,6 +84,15 @@ body {
     background-position: center center;
 }
 
+.mastoview-table-horizontal-line {
+    width: 400px;
+    height: 200px;
+    background-image: linear-gradient(yellow, yellow);
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
 table {
     padding: 0px;
     border-spacing: 0px;
@@ -104,7 +113,7 @@ table td {
     z-index: -1;
 }
 
-.connect-down-fat {
+.connect-down {
     content: "";
     position: absolute;
     left: 50%;
@@ -112,17 +121,5 @@ table td {
     height: 8px;
     width: 4px;
     background-color: yellow;
-    z-index: -1;
-}
-
-.connect-down-thin {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: -4px;
-    height: 8px;
-    width: 0px;
-    border: 1px solid yellow;
-    margin-left: -1px;
     z-index: -1;
 }

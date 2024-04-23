@@ -12,7 +12,8 @@
     <div>
         <input type="text" id="mastodon_url" value="https://neuromatch.social/@neuralreckoning/112225106987973156" style="width: 100%"><br/>
         <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_linear)">Linear threaded view</button>
-        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table)">Table view</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table_vertical)">Table view (vertical)</button>
+        <button onclick="mastoview_load_and_render(document.getElementById('mastodon_url').value, render_masto_thread_table_horizontal)">Table view (horizontal)</button>
     </div>
 
     <div id="mastoview-thread"></div>

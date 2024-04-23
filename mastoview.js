@@ -36,6 +36,7 @@ function analyse_masto_thread(the_thread) {
             return [post.recursive_replies, post.recursive_engagements];
         }
         post.engagements = post.reblogs_count + post.favourites_count;
+        post.direct_engagements = post.engagements+post.replies_count;
         post.recursive_engagements = post.engagements;
         post.recursive_replies = 0;
         if(post.children) {
@@ -49,7 +50,22 @@ function analyse_masto_thread(the_thread) {
         return [post.recursive_replies, post.recursive_engagements];
     }
     count_replies_engagements(basepost);
+    compute_max_direct_engagements(the_thread);
     return basepost;
+}
+
+function compute_max_direct_engagements(the_thread) {
+    let max_engagement = 0;
+    for(const key in the_thread) {
+        const post = the_thread[key];
+        if(post.direct_engagements > max_engagement) {
+            max_engagement = post.direct_engagements;
+        }
+    }
+    for(const key in the_thread) {
+        the_thread[key].max_direct_engagements = max_engagement;
+    }
+    return max_engagement;
 }
 
 function sort_hierarchy_by_engagement(post) {
@@ -63,10 +79,18 @@ function sort_hierarchy_by_engagement(post) {
 
 ////////////////////////// POST RENDERING ///////////////////////////////////
 
-function render_post(post, fixed_height=false) {
+function render_post(post, fixed_height=false, colour_by_engagement=true) {
     // todo: remove all the @username from the beginning and end of each masto post, just to make it look nicer. Not entirely trivial to do this.
     const div = document.createElement('div');
     div.classList.add('mastoview-post');
+    if(colour_by_engagement) {
+        const engagement = post.direct_engagements;
+        const max_engagement = post.max_direct_engagements;
+        //const c = Math.log(1+engagement)/Math.log(1+max_engagement);
+        const c = engagement/max_engagement;
+        const sat = Math.round(80*c);
+        div.style.backgroundColor = `hsl(50, ${sat}%, 50%)`;
+    }
     header_html = `<div class="mastoview-post-header"><a href="${post.account.url}"><span class="mastoview-post-author-name">${post.account.display_name}</span> <span class="mastoview-post-author-id">@${post.account.acct}</span></a></div>`;
     footer_text = `🔁 ${post.reblogs_count} ⭐ ${post.favourites_count}`;
     posted_at = new Date(post.created_at);
@@ -137,36 +161,80 @@ function expand_all_masto_thread() {
 
 ////////////////////////// TABLE VIEW //////////////////////////////////////
 
-function render_masto_thread_table(basepost, the_thread) {
-    sort_hierarchy_by_engagement(basepost);
-    // compute grid placement of posts
-    grid = {};
-    connections = []
-    let compute_grid_placement = function(post, row, col) {
-        grid[[row, col]] = post;
-        let width=1, height=0;
-        if(post.children) {
-            let cur_row = row;
-            let cur_col = col+1;
-            for(let i = 0; i < post.children.length; i++) {
-                [child_width, child_height] = compute_grid_placement(post.children[i], cur_row, cur_col);
-                width = Math.max(width, 1+child_width);
-                height += child_height;
-                if(i!=post.children.length-1) {
-                    post.children[i].has_next_sibling = true;
-                    for(let j=cur_row+1; j<cur_row+child_height; j++) {
-                        grid[[j, cur_col]] = '|'
+// Crazy that this isn't just how Javascript Map works but there you go
+class TupleMap {
+    constructor() {
+        this.map = new Map();
+    }
+    set(key, value) {
+        this.map.set(JSON.stringify(key), value);
+        return this;
+    }
+    get(key) {
+        return this.map.get(JSON.stringify(key));
+    }
+    has(key) {
+        return this.map.has(JSON.stringify(key));
+    }
+    keys() {
+        return Array.from(this.map.keys(), k => JSON.parse(k));
+    }
+}
+
+function compressed_grid_placement(post) {
+    let grid = new TupleMap();
+    grid.set([0, 0], post);
+    if(post.children) {
+        let row = 0;
+        let col = 1;
+        for(let i = 0; i < post.children.length; i++) {
+            const child = post.children[i];
+            if(i!=post.children.length-1) {
+                child.has_next_sibling = true;
+            }
+            const child_grid = compressed_grid_placement(child);
+            // check if child grid can be placed at current position, otherwise move down and continue
+            let valid = false;
+            while(!valid) {
+                valid = true;
+                for(const [subrow, subcol] of child_grid.keys()) {
+                    if(grid.has([row+subrow, col+subcol])) {
+                        valid = false;
+                        break;
                     }
                 }
-                cur_row += child_height;
+                if(valid) {
+                    for(const [subrow, subcol] of child_grid.keys()) {
+                        grid.set([row+subrow, col+subcol], child_grid.get([subrow, subcol]));
+                    }
+                } else {
+                    grid.set([row, col], '|');
+                }
+                row += 1;
             }
         }
-        if(height==0) {
-            height = 1;
-        }
-        return [width, height];
     }
-    const [width, height] = compute_grid_placement(basepost, 0, 0);
+    return grid;
+}
+
+function render_masto_thread_table(basepost, the_thread, vertical=true) {
+    sort_hierarchy_by_engagement(basepost);
+    // compute grid placement of posts
+    const grid = compressed_grid_placement(basepost);
+    let width=0, height=0;
+    for(let [row, col] of grid.keys()) {
+        if(row>height) {
+            height = row;
+        }
+        if(col>width) {
+            width = col;
+        }
+    }
+    width = width+1;
+    height = height+1;
+    if(vertical) {
+        [width, height] = [height, width];
+    }
     // render the thread
     const table = document.createElement('table');
     table.classList.add('mastoview-table');
@@ -174,33 +242,44 @@ function render_masto_thread_table(basepost, the_thread) {
         const row = table.insertRow();
         for(let j = 0; j < width; j++) {
             const cell = row.insertCell();
-            if(grid[[i, j]]) {
-                if(grid[[i, j]]=='|') {
-                    cell.classList.add('mastoview-table-vertical-line');
+            if(vertical) {
+                [i, j] = [j, i];
+            }
+            console.log([i, j], grid.get([i, j]));
+            if(grid.has([i, j])) {
+                if(grid.get([i, j])=='|') {
+                    cell.classList.add(vertical ? 'mastoview-table-horizontal-line' : 'mastoview-table-vertical-line');
                 } else {
-                    const postdiv = render_post(grid[[i, j]], true)
+                    const postdiv = render_post(grid.get([i, j]), true)
                     cell.appendChild(postdiv);
-                    if(grid[[i, j+1]] && grid[[i, j+1]]!='|') {
+                    if(grid.get([i, j]).children) {
                         const icon = document.createElement('div');
-                        icon.classList.add('connect-right');
+                        icon.classList.add(vertical ? 'connect-down' : 'connect-right');
                         cell.appendChild(icon);
                     }
-                    if(grid[[i, j]].has_next_sibling) {
+                    if(grid.get([i, j]).has_next_sibling) {
                         const icon = document.createElement('div');
-                        if(grid[[i+1, j]]=='|') {
-                            icon.classList.add('connect-down-thin');
-                        } else {
-                            icon.classList.add('connect-down-fat');
+                        if(grid.get([i+1, j])!='|') {
+                            icon.classList.add(vertical ? 'connect-right' : 'connect-down');
                         }
                         cell.appendChild(icon);
                     }
                 }
-            } else {
-                cell.innerHTML = '<div class="vline">&nbsp;</div>';
+            }
+            if(vertical) { // swap back
+                [i, j] = [j, i];
             }
         }
     }
     return table;
+}
+
+function render_masto_thread_table_vertical(basepost, the_thread) {
+    return render_masto_thread_table(basepost, the_thread, true);
+}
+
+function render_masto_thread_table_horizontal(basepost, the_thread) {
+    return render_masto_thread_table(basepost, the_thread, false);
 }
 
 ////////////////////////// COMMON TO ALL METHODS //////////////////////////
