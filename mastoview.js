@@ -1,17 +1,78 @@
 ////////////////////////// MASTODON THREAD LOADING AND ANALYSIS ////////////
+function delay(milliseconds){
+    return new Promise(resolve => {
+        setTimeout(resolve, milliseconds);
+    });
+}
 
 async function get_masto_thread(url) {
     let posts = {};
+    // const api_base_url = get_api_base_url_from_masto_url(url);
     // get the main post
-    let data = await (await fetch(url)).json();
-    posts[data.id] = data;
-    // get the children
-    data = await (await fetch(url+'/context')).json();
-    const children = data.descendants.concat(data.ancestors);
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        posts[child.id] = child;
+    let data = await (await fetch(get_api_url_from_masto_url(url))).json();
+    posts[data.url] = data;
+    let to_process = [data.url];
+    let processed = [];
+    // get all children recursively until none left to process
+    // have to do this because Masto API only gives 60 posts at a time
+    while(to_process.length>0) {
+        let current_url = to_process.shift();
+        processed.push(current_url);
+        // get the children, skipping any failures
+        try {
+            //await delay(1000); // rate limiting
+            data = await (await fetch(get_api_url_from_masto_url(current_url)+'/context')).json();
+            // console.log(get_api_url_from_masto_url(current_url, api_base_url)+'/context');
+            // console.log(data);
+        } catch(error) {
+            if(!posts[current_url].parent_url) {
+                posts[current_url].parent_url = 'missing'
+            }
+            console.log(error);
+            continue;
+        }
+        for(let i=0; i<data.descendants.length; i++) {
+            const child = data.descendants[i];
+            posts[child.url] = child;
+            if(!processed.includes(child.url) && !to_process.includes(child.url)) {
+                to_process.push(child.url);
+            }
+        }
+        let last_ancestor = null;
+        for(let i=0; i<data.ancestors.length; i++) {
+            const ancestor = data.ancestors[i];
+            posts[ancestor.url] = ancestor;
+            if(last_ancestor) {
+                ancestor.parent_url = last_ancestor.url;
+            }
+            last_ancestor = ancestor;
+            if(!processed.includes(ancestor.url) && !to_process.includes(ancestor.url)) {
+                to_process.push(ancestor.url);
+            }
+        }
+        if(last_ancestor) {
+            posts[current_url].parent_url = last_ancestor.url;
+        }
+        // const children = data.descendants.concat(data.ancestors);
+        // for (let i = 0; i < children.length; i++) {
+        //     const child = children[i];
+        //     posts[child.url] = child;
+        //     child.parent_url = current_url;
+        //     // if(!processed.includes(child.url) && !to_process.includes(child.url)) {
+        //     //     to_process.push(child.url);
+        //     // }
+        // }
     }
+    for(const key in posts) {
+        if(!posts[key].parent_url) {
+            console.log('No parent for post', posts[key])
+        } else {
+            if(!(posts[key].parent_url in posts)) {
+                console.log('Parent URL not found: ', posts[key].parent_url);
+            }
+        }
+    }
+    console.log(posts);
     return posts;
 }
 
@@ -20,14 +81,18 @@ function analyse_masto_thread(the_thread) {
     var basepost = null;
     for(const key in the_thread) {
         const post = the_thread[key];
-        if(post.in_reply_to_id === null) {
+        if(!post.parent_url) {
             basepost = post;
         } else {
-            const parent = the_thread[post.in_reply_to_id];
-            if(!parent.children) {
-                parent.children = [];
+            if(post.parent_url in the_thread) {
+                const parent = the_thread[post.parent_url];
+                if(!parent.children) {
+                    parent.children = [];
+                }
+                parent.children.push(post);
+            } else {
+                console.log('Parent not found for post', post);
             }
-            parent.children.push(post);
         }
     }
     // get the number of recursive replies and engagements
@@ -100,7 +165,7 @@ function render_post(post, fixed_height=false, colour_by_engagement=true) {
     let post_content = post.content;
     if(post.media_attachments) {
         for(let i = 0; i < post.media_attachments.length; i++) {
-            console.log(post.media_attachments[i].remote_url);
+            // console.log(post.media_attachments[i].remote_url);
             post_content += `<img src="${post.media_attachments[i].remote_url}" class="mastoview-post-media">`;
         }
     }
@@ -262,7 +327,7 @@ function render_masto_thread_table(basepost, the_thread, vertical=true) {
             if(vertical) {
                 [i, j] = [j, i];
             }
-            console.log([i, j], grid.get([i, j]));
+            // console.log([i, j], grid.get([i, j]));
             if(grid.has([i, j])) {
                 if(grid.get([i, j])=='|') {
                     cell.classList.add(vertical ? 'mastoview-table-horizontal-line' : 'mastoview-table-vertical-line');
@@ -301,16 +366,24 @@ function render_masto_thread_table_horizontal(basepost, the_thread) {
 
 ////////////////////////// COMMON TO ALL METHODS //////////////////////////
 
-function get_api_url_from_masto_url(url) {
+function get_api_base_url_from_masto_url(url) {
     const url_parts = url.split('/');
-    return url_parts[0]+'//'+url_parts[2]+'/api/v1/statuses/'+url_parts[url_parts.length-1];
+    return url_parts[0]+'//'+url_parts[2]+'/api/v1/statuses/';
+}
+
+function get_api_url_from_masto_url(url, baseurl=null) {
+    const url_parts = url.split('/');
+    if(baseurl===null) {
+        baseurl = get_api_base_url_from_masto_url(url);
+    }
+    return baseurl+url_parts[url_parts.length-1];
 }
 
 function mastoview_load_and_render(url, render_func) {
-    const api_url = get_api_url_from_masto_url(url);
+    // const api_url = get_api_url_from_masto_url(url);
     const container = document.querySelector('#mastoview-thread');
     container.innerHTML = '<div class="loading_thread">Loading thread, please wait...</a>'
-    get_masto_thread(api_url)
+    get_masto_thread(url)
         .then(the_thread => {
             const basepost = analyse_masto_thread(the_thread);
             const div = render_func(basepost, the_thread);
